@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zabum AI - Screenshot Knowledge Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Zabum AI</h1>
+            <p class="subtitle">Local-First AI Screenshot Knowledge Management</p>
+            <div class="progress-badge">Week 2: LLM Tagging ✅</div>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <h2>Upload Screenshot</h2>
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-prompt">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Click to upload or drag and drop</p>
+                        <p class="hint">PNG, JPG, GIF up to 16MB</p>
+                    </div>
+                </div>
+                <button id="uploadBtn" class="btn-primary" disabled>Process Image</button>
+            </section>
+
+            <section class="status-section" id="statusSection" style="display: none;">
+                <h3>Processing Status</h3>
+                <div class="status-content">
+                    <div class="spinner"></div>
+                    <p id="statusText">Initializing...</p>
+                </div>
+            </section>
+
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>Analysis Results</h2>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <h3>📝 Extracted Text (OCR)</h3>
+                        <div class="result-content" id="extractedText"></div>
+                    </div>
+                    <div class="result-card">
+                        <h3>🏷️ AI-Generated Tags</h3>
+                        <div class="tags-container" id="tagsContainer"></div>
+                    </div>
+                    <div class="result-card">
+                        <h3>📊 Category</h3>
+                        <div class="category-badge" id="categoryBadge"></div>
+                    </div>
+                    <div class="result-card full-width">
+                        <h3>💡 AI Summary</h3>
+                        <div class="result-content" id="summaryText"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="info-section">
+                <h2>Week 2 Progress</h2>
+                <div class="feature-list">
+                    <div class="feature-item completed">
+                        <span class="check">✅</span>
+                        <div>
+                            <strong>OCR Service</strong>
+                            <p>TrOCR model extracting text from images</p>
+                        </div>
+                    </div>
+                    <div class="feature-item completed">
+                        <span class="check">✅</span>
+                        <div>
+                            <strong>LLM Service</strong>
+                            <p>Ollama + Llama 3.2 generating smart tags</p>
+                        </div>
+                    </div>
+                    <div class="feature-item completed">
+                        <span class="check">✅</span>
+                        <div>
+                            <strong>Backend Integration</strong>
+                            <p>Flask API with /api/process endpoint</p>
+                        </div>
+                    </div>
+                    <div class="feature-item pending">
+                        <span class="check">⏳</span>
+                        <div>
+                            <strong>Coming in Week 3</strong>
+                            <p>Full frontend UI with search & gallery</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

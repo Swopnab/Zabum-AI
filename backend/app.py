@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 import uuid
 from services.ocr_service import get_ocr_service
+from services.llm_service import get_llm_service
 from models.database import get_database
 
 app = Flask(__name__)
@@ -29,17 +30,20 @@ os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
 
 # Initialize services (lazy loading)
 ocr_service = None
+llm_service = None
 database = None
 
 
 def init_services():
-    """Initialize OCR and database services"""
-    global ocr_service, database
+    """Initialize OCR, LLM, and database services"""
+    global ocr_service, llm_service, database
     if ocr_service is None:
         ocr_service = get_ocr_service()
+    if llm_service is None:
+        llm_service = get_llm_service()
     if database is None:
         database = get_database()
-    return ocr_service, database
+    return ocr_service, llm_service, database
 
 
 def allowed_file(filename):
@@ -91,20 +95,21 @@ def process_image():
         file.save(filepath)
         
         # Initialize services
-        ocr, db = init_services()
+        ocr, llm, db = init_services()
         
         # Week 1: Extract text using OCR
         print(f"🔍 Extracting text from {filename}...")
         extracted_text = ocr.extract_text(filepath)
         print(f"✅ Extracted: {extracted_text[:100]}..." if len(extracted_text) > 100 else f"✅ Extracted: {extracted_text}")
         
-        # TODO: Week 2 - Implement LLM tagging
-        # metadata = llm_service.generate_metadata(extracted_text)
-        tags = ["ocr-processed"]
-        summary = f"Image contains: {extracted_text[:100]}..." if len(extracted_text) > 100 else f"Image contains: {extracted_text}"
-        category = "document" if extracted_text else "image"
+        # Week 2: Generate metadata using LLM
+        print(f"🤖 Generating metadata with LLM...")
+        metadata = llm.generate_metadata(extracted_text)
+        tags = metadata['tags']
+        summary = metadata['summary']
+        category = metadata['category']
         
-        # Week 1: Save to database
+        # Save to database
         db.save_image(image_id, filename, extracted_text, tags, summary, category)
         print(f"💾 Saved to database: {image_id}")
         

@@ -3,100 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zabum AI - Screenshot Knowledge Manager</title>
+    <title>Zabum AI — Personal AI Assistant</title>
+    <meta name="description" content="Local-first Personal AI Assistant with persistent memory, screenshot intelligence, and knowledge retrieval.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🧠 Zabum AI</h1>
-            <p class="subtitle">Local-First AI Screenshot Knowledge Management</p>
-            <div class="progress-badge">Week 2: LLM Tagging ✅</div>
-        </header>
-
-        <main>
-            <section class="upload-section">
-                <h2>Upload Screenshot</h2>
-                <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept="image/*" hidden>
-                    <div class="upload-prompt">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
+    <div class="app-layout" id="appLayout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-container">
+                    <div class="brand-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
+                            <path d="m9 12 2 2 4-4"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
                         </svg>
-                        <p>Click to upload or drag and drop</p>
-                        <p class="hint">PNG, JPG, GIF up to 16MB</p>
+                    </div>
+                    <div class="brand-text">
+                        <h1 class="brand-title">Zabum AI</h1>
+                        <span class="brand-subtitle">Personal AI Assistant</span>
                     </div>
                 </div>
-                <button id="uploadBtn" class="btn-primary" disabled>Process Image</button>
-            </section>
+                <button class="btn-icon mobile-only" id="closeSidebarBtn" title="Close Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
 
-            <section class="status-section" id="statusSection" style="display: none;">
-                <h3>Processing Status</h3>
-                <div class="status-content">
-                    <div class="spinner"></div>
-                    <p id="statusText">Initializing...</p>
-                </div>
-            </section>
+            <div class="sidebar-actions">
+                <button class="btn-new-chat" id="newChatBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>New Chat</span>
+                </button>
+            </div>
 
-            <section class="results-section" id="resultsSection" style="display: none;">
-                <h2>Analysis Results</h2>
-                <div class="results-grid">
-                    <div class="result-card">
-                        <h3>📝 Extracted Text (OCR)</h3>
-                        <div class="result-content" id="extractedText"></div>
-                    </div>
-                    <div class="result-card">
-                        <h3>🏷️ AI-Generated Tags</h3>
-                        <div class="tags-container" id="tagsContainer"></div>
-                    </div>
-                    <div class="result-card">
-                        <h3>📊 Category</h3>
-                        <div class="category-badge" id="categoryBadge"></div>
-                    </div>
-                    <div class="result-card full-width">
-                        <h3>💡 AI Summary</h3>
-                        <div class="result-content" id="summaryText"></div>
-                    </div>
-                </div>
-            </section>
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" id="tabChatsBtn" data-tab="chats">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Chats</span>
+                </button>
+                <button class="nav-tab" id="tabMemoryBtn" data-tab="memory">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>Memory</span>
+                    <span class="badge" id="memoryCountBadge">0</span>
+                </button>
+                <button class="nav-tab" id="tabDocsBtn" data-tab="docs">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Knowledge</span>
+                    <span class="badge" id="docsCountBadge">0</span>
+                </button>
+            </div>
 
-            <section class="info-section">
-                <h2>Week 2 Progress</h2>
-                <div class="feature-list">
-                    <div class="feature-item completed">
-                        <span class="check">✅</span>
-                        <div>
-                            <strong>OCR Service</strong>
-                            <p>TrOCR model extracting text from images</p>
-                        </div>
-                    </div>
-                    <div class="feature-item completed">
-                        <span class="check">✅</span>
-                        <div>
-                            <strong>LLM Service</strong>
-                            <p>Ollama + Llama 3.2 generating smart tags</p>
-                        </div>
-                    </div>
-                    <div class="feature-item completed">
-                        <span class="check">✅</span>
-                        <div>
-                            <strong>Backend Integration</strong>
-                            <p>Flask API with /api/process endpoint</p>
-                        </div>
-                    </div>
-                    <div class="feature-item pending">
-                        <span class="check">⏳</span>
-                        <div>
-                            <strong>Coming in Week 3</strong>
-                            <p>Full frontend UI with search & gallery</p>
-                        </div>
+            <!-- Sidebar Scrollable Content -->
+            <div class="sidebar-content">
+                <!-- Conversations List Section -->
+                <div class="tab-pane active" id="paneChats">
+                    <div class="section-label">Recent Conversations</div>
+                    <div class="conversation-list" id="conversationList">
+                        <!-- Dynamic conversation items -->
                     </div>
                 </div>
-            </section>
+
+                <!-- Memory Management Section in Sidebar -->
+                <div class="tab-pane" id="paneMemory">
+                    <div class="pane-header">
+                        <span class="section-label">Personal Memories</span>
+                        <button class="btn-xs btn-primary" id="openAddMemoryBtn">+ Add</button>
+                    </div>
+                    <p class="section-desc">Facts & preferences remembered by Zabum AI across conversations.</p>
+                    <div class="memory-search-box">
+                        <input type="text" id="memorySearchInput" placeholder="Search memories..." />
+                    </div>
+                    <div class="memory-list" id="memoryList">
+                        <!-- Dynamic memory items -->
+                    </div>
+                </div>
+
+                <!-- Knowledge Base Section in Sidebar -->
+                <div class="tab-pane" id="paneDocs">
+                    <div class="pane-header">
+                        <span class="section-label">Documents & OCR</span>
+                        <button class="btn-xs btn-primary" id="openUploadBtn">+ Upload</button>
+                    </div>
+                    <p class="section-desc">Screenshots & files indexed for semantic RAG retrieval.</p>
+                    <div class="doc-list" id="documentList">
+                        <!-- Dynamic document items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer / System Status -->
+            <div class="sidebar-footer">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot online" id="statusDot"></div>
+                    <div class="status-info">
+                        <span class="status-title" id="statusTitle">Local AI</span>
+                        <span class="status-detail" id="statusDetail">Ollama Llama 3.2</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat View -->
+        <main class="chat-main" id="chatMain">
+            <!-- Chat Topbar -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="btn-icon" id="toggleSidebarBtn" title="Toggle Sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="chat-title-group">
+                        <h2 class="active-chat-title" id="activeChatTitle">New Chat</h2>
+                        <span class="model-badge">
+                            <span class="model-badge-dot"></span>
+                            <span id="headerModelName">Llama 3.2 (Local)</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button class="btn-header-action" id="headerMemoryBtn" title="View Active Memories">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Memory</span>
+                    </button>
+                    <button class="btn-header-action" id="headerKnowledgeBtn" title="Knowledge Base">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                        <span>Knowledge</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Message Thread Container -->
+            <div class="messages-container" id="messagesContainer">
+                <!-- Welcome Hero Screen (shown when chat is empty) -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">🧠</div>
+                    <h2 class="welcome-title">Welcome to Zabum AI</h2>
+                    <p class="welcome-subtitle">Your private, local-first personal AI assistant with persistent memory and screenshot intelligence.</p>
+
+                    <div class="feature-pills">
+                        <div class="feature-pill">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            <span>100% Local & Private</span>
+                        </div>
+                        <div class="feature-pill">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                            <span>Persistent Memory</span>
+                        </div>
+                        <div class="feature-pill">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span>TrOCR Screenshot RAG</span>
+                        </div>
+                    </div>
+
+                    <div class="starter-grid">
+                        <button class="starter-card" data-prompt="Explain recursion with a concise Python example">
+                            <div class="starter-title">💻 Code & Explanations</div>
+                            <div class="starter-text">Explain recursion with a concise Python example</div>
+                        </button>
+                        <button class="starter-card" data-prompt="Remember that I prefer Python and FastAPI for backend development">
+                            <div class="starter-title">🧠 Test Personal Memory</div>
+                            <div class="starter-text">"Remember that I prefer Python and FastAPI for backend"</div>
+                        </button>
+                        <button class="starter-card" data-prompt="What language or framework should I use for my next backend project?">
+                            <div class="starter-title">🎯 Contextual Recall</div>
+                            <div class="starter-text">What language should I use for my next backend project?</div>
+                        </button>
+                        <button class="starter-card" data-prompt="What do my uploaded screenshots and documents say about my notes?">
+                            <div class="starter-title">📚 Knowledge Search</div>
+                            <div class="starter-text">What do my uploaded documents say about my notes?</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Feed -->
+                <div class="messages-feed" id="messagesFeed">
+                    <!-- Dynamic message bubbles will appear here -->
+                </div>
+
+                <!-- Typing indicator -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="typing-avatar">🧠</div>
+                    <div class="typing-bubble">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="chat-input-wrapper">
+                <!-- Drop file overlay -->
+                <div class="drop-overlay" id="dropOverlay">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Drop screenshot or document to ingest into knowledge base</span>
+                </div>
+
+                <!-- Uploading notification pill -->
+                <div class="upload-progress-pill" id="uploadProgressPill" style="display: none;">
+                    <div class="spinner-sm"></div>
+                    <span id="uploadProgressText">Processing screenshot with TrOCR OCR...</span>
+                </div>
+
+                <div class="chat-input-bar">
+                    <!-- File upload attachment button -->
+                    <input type="file" id="chatFileInput" accept="image/*,.txt,.md,.py,.js,.json,.csv,.pdf" hidden />
+                    <button class="btn-attach" id="attachFileBtn" title="Attach screenshot or document for OCR & RAG">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Textarea input -->
+                    <textarea 
+                        id="chatInput" 
+                        class="chat-textarea" 
+                        placeholder="Message Zabum AI or type 'Remember that...' (Shift+Enter for new line)"
+                        rows="1"
+                    ></textarea>
+
+                    <!-- Send button -->
+                    <button class="btn-send" id="sendBtn" title="Send message" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-footer-hint">
+                    <span>Privacy Notice: All inferences and documents are processed locally on your device.</span>
+                </div>
+            </div>
         </main>
     </div>
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Memory Modal -->
+    <div class="modal-backdrop" id="memoryModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="memoryModalTitle">Add New Memory</h3>
+                <button class="btn-icon close-modal-btn" data-modal="memoryModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editMemoryId" value="" />
+                <div class="form-group">
+                    <label for="memoryContentInput">Memory Content / Preference</label>
+                    <textarea id="memoryContentInput" rows="3" placeholder="e.g. User prefers Python and PostgreSQL for backend projects"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="memoryCategorySelect">Category</label>
+                    <select id="memoryCategorySelect">
+                        <option value="preference">Preference</option>
+                        <option value="fact">Fact / Knowledge</option>
+                        <option value="identity">Identity / Profile</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal-btn" data-modal="memoryModal">Cancel</button>
+                <button class="btn-primary" id="saveMemoryBtn">Save Memory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload / Ingestion Modal -->
+    <div class="modal-backdrop" id="uploadModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Upload to Knowledge Base</h3>
+                <button class="btn-icon close-modal-btn" data-modal="uploadModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-drop-zone" id="modalDropZone">
+                    <input type="file" id="modalFileInput" accept="image/*,.txt,.md,.py,.js,.json,.csv,.pdf" hidden />
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="drop-prompt-text">Click or drag screenshot / document here</p>
+                    <p class="drop-hint-text">Supported: PNG, JPG, WEBP, TXT, MD, Code files, PDF (Up to 32MB)</p>
+                </div>
+                <div id="modalUploadStatus" class="modal-status" style="display: none;">
+                    <div class="spinner-sm"></div>
+                    <span id="modalUploadStatusText">Extracting text with TrOCR OCR...</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal-btn" data-modal="uploadModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Inspection / Chunk Viewer Modal -->
+    <div class="modal-backdrop" id="chunkModal" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title" id="chunkModalTitle">Document Details & RAG Chunks</h3>
+                <button class="btn-icon close-modal-btn" data-modal="chunkModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="doc-meta-panel" id="docMetaPanel"></div>
+                <h4 class="subheading">Extracted Text</h4>
+                <div class="extracted-text-box" id="docExtractedTextBox"></div>
+                <h4 class="subheading" style="margin-top: 16px;">Indexed RAG Chunks</h4>
+                <div class="chunks-container" id="docChunksContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal-btn" data-modal="chunkModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Conversation Modal -->
+    <div class="modal-backdrop" id="renameModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Rename Conversation</h3>
+                <button class="btn-icon close-modal-btn" data-modal="renameModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="renameConvId" value="" />
+                <div class="form-group">
+                    <label for="renameConvInput">Conversation Title</label>
+                    <input type="text" id="renameConvInput" placeholder="Enter title..." />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal-btn" data-modal="renameModal">Cancel</button>
+                <button class="btn-primary" id="confirmRenameBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script src="app.js"></script>
 </body>

@@ -1,181 +1,78 @@
 """
-Zabum AI - Main Flask Application
-Local-first screenshot knowledge management system
+Zabum AI - Personal AI Assistant Backend
+Local-first, privacy-focused conversational AI with persistent memory and RAG knowledge retrieval.
 """
 
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 import os
-from datetime import datetime
-import uuid
-from services.ocr_service import get_ocr_service
-from services.llm_service import get_llm_service
-from models.database import get_database
+from pathlib import Path
+from flask import Flask, jsonify, send_from_directory
+from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+from config import UPLOAD_FOLDER, THUMBNAIL_FOLDER, MAX_CONTENT_LENGTH
+from models.database import init_db
+from routes.chat import chat_bp
+from routes.conversations import conversations_bp
+from routes.memory import memory_bp
+from routes.documents import documents_bp
+from routes.status import status_bp
 
-# Configuration
-UPLOAD_FOLDER = '../storage/uploads'
-THUMBNAIL_FOLDER = '../storage/thumbnails'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+# Define frontend path
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['THUMBNAIL_FOLDER'] = THUMBNAIL_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max file size
+def create_app():
+    """Application factory for Zabum AI Flask backend"""
+    app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
+    CORS(app)
 
-# Ensure directories exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
+    # Configuration
+    app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
+    app.config["THUMBNAIL_FOLDER"] = str(THUMBNAIL_FOLDER)
+    app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
-# Initialize services (lazy loading)
-ocr_service = None
-llm_service = None
-database = None
+    # Initialize Database Schema
+    init_db()
 
+    # Register Blueprints
+    app.register_blueprint(status_bp)
+    app.register_blueprint(chat_bp)
+    app.register_blueprint(conversations_bp)
+    app.register_blueprint(memory_bp)
+    app.register_blueprint(documents_bp)
 
-def init_services():
-    """Initialize OCR, LLM, and database services"""
-    global ocr_service, llm_service, database
-    if ocr_service is None:
-        ocr_service = get_ocr_service()
-    if llm_service is None:
-        llm_service = get_llm_service()
-    if database is None:
-        database = get_database()
-    return ocr_service, llm_service, database
+    # Serve Frontend Single Page App
+    @app.route("/app")
+    @app.route("/chat")
+    def serve_frontend():
+        return send_from_directory(str(FRONTEND_DIR), "index.html")
 
+    # Serve uploaded files if requested
+    @app.route("/storage/uploads/<path:filename>")
+    def serve_upload(filename):
+        return send_from_directory(str(UPLOAD_FOLDER), filename)
 
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    # Global Error Handlers
+    @app.errorhandler(404)
+    def not_found_error(e):
+        return jsonify({"error": "Endpoint or resource not found", "status_code": 404}), 404
 
+    @app.errorhandler(413)
+    def file_too_large_error(e):
+        return jsonify({"error": "File size exceeds the 32MB maximum limit", "status_code": 413}), 413
 
-@app.route('/')
-def index():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'running',
-        'message': 'Zabum AI Backend is running!',
-        'version': '0.1.0',
-        'timestamp': datetime.now().isoformat()
-    })
+    @app.errorhandler(500)
+    def internal_error(e):
+        return jsonify({"error": "Internal server error occurred", "details": str(e), "status_code": 500}), 500
 
-
-@app.route('/api/process', methods=['POST'])
-def process_image():
-    """
-    Main endpoint: Upload image → OCR → LLM tagging → Save to DB
-    
-    Expected: multipart/form-data with 'image' file
-    Returns: JSON with extracted text, tags, summary, etc.
-    """
-    # Check if file is in request
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image file provided'}), 400
-    
-    file = request.files['image']
-    
-    # Check if filename is empty
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    # Validate file type
-    if not allowed_file(file.filename):
-        return jsonify({'error': f'Invalid file type. Allowed: {ALLOWED_EXTENSIONS}'}), 400
-    
-    try:
-        # Generate unique ID and filename
-        image_id = str(uuid.uuid4())
-        file_extension = file.filename.rsplit('.', 1)[1].lower()
-        filename = f"{image_id}.{file_extension}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        # Save uploaded file
-        file.save(filepath)
-        
-        # Initialize services
-        ocr, llm, db = init_services()
-        
-        # Week 1: Extract text using OCR
-        print(f"🔍 Extracting text from {filename}...")
-        extracted_text = ocr.extract_text(filepath)
-        print(f"✅ Extracted: {extracted_text[:100]}..." if len(extracted_text) > 100 else f"✅ Extracted: {extracted_text}")
-        
-        # Week 2: Generate metadata using LLM
-        print(f"🤖 Generating metadata with LLM...")
-        metadata = llm.generate_metadata(extracted_text)
-        tags = metadata['tags']
-        summary = metadata['summary']
-        category = metadata['category']
-        
-        # Save to database
-        db.save_image(image_id, filename, extracted_text, tags, summary, category)
-        print(f"💾 Saved to database: {image_id}")
-        
-        # Return response
-        return jsonify({
-            'success': True,
-            'id': image_id,
-            'filename': filename,
-            'extracted_text': extracted_text,
-            'tags': tags,
-            'summary': summary,
-            'category': category,
-            'created_at': datetime.now().isoformat()
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return app
 
 
-@app.route('/api/images', methods=['GET'])
-def get_images():
-    """
-    Get all processed images
-    Returns: JSON array of image metadata
-    """
-    # Week 1: Fetch from database
-    _, db = init_services()
-    images = db.get_all_images()
-    
-    return jsonify({
-        'images': images,
-        'count': len(images)
-    })
+app = create_app()
 
-
-@app.route('/api/search', methods=['GET'])
-def search_images():
-    """
-    Search images by query
-    Query params: ?q=search_term
-    """
-    query = request.args.get('q', '')
-    
-    # TODO: Week 3 - Implement search logic
-    return jsonify({
-        'query': query,
-        'results': [],
-        'message': 'Search will be implemented in Week 3'
-    })
-
-
-@app.route('/api/export', methods=['POST'])
-def export_markdown():
-    """
-    Export selected images to Markdown
-    Request body: { "image_ids": [...] }
-    """
-    # TODO: Week 4 - Implement export
-    return jsonify({
-        'message': 'Export feature coming in Week 4'
-    })
-
-
-if __name__ == '__main__':
-    print("🚀 Starting Zabum AI Backend...")
-    print(f"📁 Upload folder: {os.path.abspath(UPLOAD_FOLDER)}")
-    print(f"🖼️  Thumbnail folder: {os.path.abspath(THUMBNAIL_FOLDER)}")
-    print("=" * 50)
-    app.run(debug=True, host='0.0.0.0', port=5001)
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 5001))
+    print("=" * 60)
+    print("🧠 Zabum AI - Personal AI Assistant Backend")
+    print(f"🚀 Server running on http://localhost:{port}")
+    print(f"🌐 Chat App available at http://localhost:{port}/app")
+    print("=" * 60)
+    app.run(debug=True, host="0.0.0.0", port=port)

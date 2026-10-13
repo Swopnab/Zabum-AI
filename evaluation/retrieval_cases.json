@@ -1,0 +1,18 @@
+{
+  "description": "Synthetic lexical regression fixture. Does not evaluate LLM answer accuracy or physical OCR.",
+  "documents": [
+    {"name":"parking.txt","text":"Campus parking permits expire in August. Visitor parking uses the east garage."},
+    {"name":"library.txt","text":"Library weekend opening hours are nine until five. Borrowed books renew online."},
+    {"name":"courses.txt","text":"The algorithms course prerequisite is data structures. Registration opens in April."},
+    {"name":"music.txt","text":"The music player stores imported audio in IndexedDB. Radio streams require an internet connection."},
+    {"name":"racing.txt","text":"CyberSteer hand tracking uses MediaPipe landmarks. Keyboard arrows also steer the car."}
+  ],
+  "queries": [
+    {"query":"parking permits expire","expected":"parking.txt"},
+    {"query":"library weekend hours","expected":"library.txt"},
+    {"query":"algorithms prerequisite","expected":"courses.txt"},
+    {"query":"imported audio IndexedDB","expected":"music.txt"},
+    {"query":"CyberSteer keyboard","expected":"racing.txt"},
+    {"query":"volcanic eruption monitoring","expected":null}
+  ]
+}

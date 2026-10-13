@@ -8,7 +8,7 @@ import math
 import re
 from pathlib import Path
 from config import CHUNK_SIZE, CHUNK_OVERLAP, MAX_RETRIEVED_CHUNKS, IMAGE_EXTENSIONS
-from models.document import DocumentModel, DocumentChunkModel
+from models.document import DocumentModel, DocumentChunkModel, create_indexed_document
 from services.ai_provider import get_ai_provider
 from services.ocr_service import get_ocr_service
 
@@ -38,41 +38,24 @@ class RAGService:
         extracted_text = self._extract_text(filepath, ext)
 
         if not extracted_text or not extracted_text.strip():
-            extracted_text = f"[Empty or unreadable content from {original_filename}]"
+            raise ValueError("No readable text found; the document was not indexed")
 
         # Step 2: Generate summary and tags
         summary, tags, category = self._analyze_content(extracted_text, original_filename, file_type)
 
-        # Step 3: Save Document record
-        doc = DocumentModel.create(
-            filename=os.path.basename(filepath),
-            original_name=original_filename,
-            file_type=file_type,
-            file_size=file_size,
-            extracted_text=extracted_text,
-            summary=summary,
-            tags=tags,
-            category=category
-        )
-
-        # Step 4: Chunk and Index
-        chunks = self._chunk_text(extracted_text, CHUNK_SIZE, CHUNK_OVERLAP)
-        for i, chunk in enumerate(chunks):
-            # Try to get vector embedding from AI provider
-            embedding = None
+        # Prepare embeddings before the transaction; unavailable embeddings use lexical retrieval.
+        indexed_chunks = []
+        for chunk in self._chunk_text(extracted_text, CHUNK_SIZE, CHUNK_OVERLAP):
             try:
                 embedding = self.ai_provider.get_embedding(chunk)
             except Exception:
                 embedding = None
-            
-            DocumentChunkModel.create(
-                document_id=doc["id"],
-                chunk_index=i,
-                content=chunk,
-                embedding=embedding
-            )
-
-        return doc
+            indexed_chunks.append((chunk,embedding))
+        return create_indexed_document({
+            "filename": os.path.basename(filepath), "original_name": original_filename,
+            "file_type": file_type, "file_size": file_size, "extracted_text": extracted_text,
+            "summary": summary, "tags": tags, "category": category,
+        }, indexed_chunks)
 
     def _extract_text(self, filepath: str, ext: str) -> str:
         """Extract text depending on file extension"""
@@ -85,14 +68,14 @@ class RAGService:
                 text = "\n".join([page.extract_text() or "" for page in reader.pages])
                 return text.strip()
             except Exception as e:
-                return f"[PDF parsing error: {e}]"
+                raise ValueError("Could not read this PDF") from e
         else:
             # Text / Code / Markdown
             try:
                 with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                     return f.read().strip()
             except Exception as e:
-                return f"[File read error: {e}]"
+                raise ValueError("Could not read this text file") from e
 
     def _analyze_content(self, text: str, filename: str, file_type: str) -> tuple[str, list, str]:
         """Generate summary, tags, and category using AI provider or heuristics"""
@@ -126,6 +109,8 @@ JSON:"""
 
     def _chunk_text(self, text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
         """Split text into semantic/character chunks with overlap"""
+        if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size // 2:
+            raise ValueError("Chunk size must be positive and overlap smaller than half the size")
         text = text.strip()
         if not text:
             return []
@@ -156,13 +141,13 @@ JSON:"""
     def retrieve_relevant_chunks(self, query: str, top_k: int = MAX_RETRIEVED_CHUNKS) -> list[dict]:
         """
         Hybrid similarity search: Combines Cosine Vector Similarity (when embeddings exist)
-        with BM25 / TF-IDF Keyword relevance scoring.
+        with token-overlap reranking of an FTS5/BM25 lexical shortlist.
         """
         query = query.strip()
         if not query:
             return []
 
-        all_chunks = DocumentChunkModel.get_all_chunks_with_doc_meta()
+        all_chunks = DocumentChunkModel.search_candidates(query)
         if not all_chunks:
             return []
 

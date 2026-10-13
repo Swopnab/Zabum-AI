@@ -1,0 +1,22 @@
+name: Local application tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install -r backend/requirements-core.txt
+      - run: python -m unittest discover -s tests -v
+        working-directory: backend
+      - run: python evaluate.py --output ../evaluation/results.json
+        working-directory: backend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-retrieval-evaluation
+          path: evaluation/*.json

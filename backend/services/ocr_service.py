@@ -10,6 +10,10 @@ from config import OCR_MODEL_NAME
 
 logger = logging.getLogger(__name__)
 
+class OCRUnavailableError(RuntimeError):
+    """OCR weights/dependencies could not be loaded."""
+
+
 class OCRService:
     """Service for extracting text from images using TrOCR"""
 
@@ -39,7 +43,7 @@ class OCRService:
             logger.info(f"✅ OCR model loaded on {self.device}")
         except Exception as e:
             self._load_error = str(e)
-            logger.warning(f"⚠️ TrOCR model failed to load ({e}). Basic text fallback will be used.")
+            logger.warning(f"⚠️ TrOCR model failed to load ({e}). Image uploads will report OCR unavailable.")
 
     def extract_text(self, image_path: str) -> str:
         """
@@ -57,8 +61,7 @@ class OCRService:
         self._load_model()
 
         if not self._is_loaded:
-            # Fallback if transformers model couldn't be loaded
-            return f"[OCR Processed: {os.path.basename(image_path)}]"
+            raise OCRUnavailableError("OCR is unavailable. Install the OCR requirements and allow the configured model to load.")
 
         try:
             # Open and preprocess image
@@ -81,7 +84,7 @@ class OCRService:
             
         except Exception as e:
             logger.error(f"❌ OCR Extraction Error: {e}")
-            return f"[Image uploaded: {os.path.basename(image_path)} - OCR Error: {str(e)}]"
+            raise ValueError("Could not extract text from this image") from e
 
 
 # Global singleton

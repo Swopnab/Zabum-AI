@@ -1,0 +1,187 @@
+{
+  "fixture": "synthetic lexical retrieval; offline mock provider; not LLM/OCR quality",
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "runs": [
+    {
+      "chunks": 1000,
+      "iterations_per_query": 20,
+      "metrics": {
+        "fts5": {
+          "recall_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "unrelated_queries_with_results": 0,
+          "p50_ms": 0.239,
+          "p95_ms": 0.27
+        },
+        "full_scan": {
+          "recall_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "unrelated_queries_with_results": 0,
+          "p50_ms": 3.631,
+          "p95_ms": 3.802
+        }
+      },
+      "predictions": [
+        {
+          "query": "parking permits expire",
+          "expected": "parking.txt",
+          "results": {
+            "fts5": [
+              "parking.txt"
+            ],
+            "full_scan": [
+              "parking.txt"
+            ]
+          }
+        },
+        {
+          "query": "library weekend hours",
+          "expected": "library.txt",
+          "results": {
+            "fts5": [
+              "library.txt"
+            ],
+            "full_scan": [
+              "library.txt"
+            ]
+          }
+        },
+        {
+          "query": "algorithms prerequisite",
+          "expected": "courses.txt",
+          "results": {
+            "fts5": [
+              "courses.txt"
+            ],
+            "full_scan": [
+              "courses.txt"
+            ]
+          }
+        },
+        {
+          "query": "imported audio IndexedDB",
+          "expected": "music.txt",
+          "results": {
+            "fts5": [
+              "music.txt"
+            ],
+            "full_scan": [
+              "music.txt"
+            ]
+          }
+        },
+        {
+          "query": "CyberSteer keyboard",
+          "expected": "racing.txt",
+          "results": {
+            "fts5": [
+              "racing.txt"
+            ],
+            "full_scan": [
+              "racing.txt"
+            ]
+          }
+        },
+        {
+          "query": "volcanic eruption monitoring",
+          "expected": null,
+          "results": {
+            "fts5": [],
+            "full_scan": []
+          }
+        }
+      ]
+    },
+    {
+      "chunks": 10000,
+      "iterations_per_query": 20,
+      "metrics": {
+        "fts5": {
+          "recall_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "unrelated_queries_with_results": 0,
+          "p50_ms": 0.234,
+          "p95_ms": 0.295
+        },
+        "full_scan": {
+          "recall_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "unrelated_queries_with_results": 0,
+          "p50_ms": 35.804,
+          "p95_ms": 36.795
+        }
+      },
+      "predictions": [
+        {
+          "query": "parking permits expire",
+          "expected": "parking.txt",
+          "results": {
+            "fts5": [
+              "parking.txt"
+            ],
+            "full_scan": [
+              "parking.txt"
+            ]
+          }
+        },
+        {
+          "query": "library weekend hours",
+          "expected": "library.txt",
+          "results": {
+            "fts5": [
+              "library.txt"
+            ],
+            "full_scan": [
+              "library.txt"
+            ]
+          }
+        },
+        {
+          "query": "algorithms prerequisite",
+          "expected": "courses.txt",
+          "results": {
+            "fts5": [
+              "courses.txt"
+            ],
+            "full_scan": [
+              "courses.txt"
+            ]
+          }
+        },
+        {
+          "query": "imported audio IndexedDB",
+          "expected": "music.txt",
+          "results": {
+            "fts5": [
+              "music.txt"
+            ],
+            "full_scan": [
+              "music.txt"
+            ]
+          }
+        },
+        {
+          "query": "CyberSteer keyboard",
+          "expected": "racing.txt",
+          "results": {
+            "fts5": [
+              "racing.txt"
+            ],
+            "full_scan": [
+              "racing.txt"
+            ]
+          }
+        },
+        {
+          "query": "volcanic eruption monitoring",
+          "expected": null,
+          "results": {
+            "fts5": [],
+            "full_scan": []
+          }
+        }
+      ]
+    }
+  ]
+}

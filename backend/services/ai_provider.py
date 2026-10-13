@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import requests
 import json
 import logging
-from config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_EMBED_MODEL
+from config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_EMBED_MODEL, AI_PROVIDER
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class OllamaProvider(BaseAIProvider):
                     return True, f"Ollama online with {self.model_name}"
                 else:
                     available = ", ".join(models) if models else "none"
-                    return True, f"Ollama online, but model '{self.model_name}' not downloaded (Available: {available}). Run 'ollama pull {self.model_name}'."
+                    return False, f"Ollama online, but model '{self.model_name}' not downloaded (Available: {available}). Run 'ollama pull {self.model_name}'."
             return False, f"Ollama responded with HTTP {res.status_code}"
         except requests.exceptions.ConnectionError:
             return False, "Cannot connect to Ollama. Make sure 'ollama serve' is running on http://localhost:11434"
@@ -162,5 +162,5 @@ def get_ai_provider() -> BaseAIProvider:
     """Singleton getter for current AI provider"""
     global _current_provider
     if _current_provider is None:
-        _current_provider = OllamaProvider()
+        _current_provider = MockProvider() if AI_PROVIDER == "mock" else OllamaProvider()
     return _current_provider

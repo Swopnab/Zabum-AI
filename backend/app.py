@@ -8,7 +8,7 @@ from pathlib import Path
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
-from config import UPLOAD_FOLDER, THUMBNAIL_FOLDER, MAX_CONTENT_LENGTH
+from config import UPLOAD_FOLDER, THUMBNAIL_FOLDER, MAX_CONTENT_LENGTH, DB_PATH
 from models.database import init_db
 from routes.chat import chat_bp
 from routes.conversations import conversations_bp
@@ -19,7 +19,7 @@ from routes.status import status_bp
 # Define frontend path
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
-def create_app():
+def create_app(test_config=None):
     """Application factory for Zabum AI Flask backend"""
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
     CORS(app)
@@ -30,7 +30,11 @@ def create_app():
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
     # Initialize Database Schema
-    init_db()
+    app.config["DB_PATH"] = str(DB_PATH)
+    if test_config:
+        app.config.update(test_config)
+    with app.app_context():
+        init_db()
 
     # Register Blueprints
     app.register_blueprint(status_bp)
@@ -75,4 +79,4 @@ if __name__ == "__main__":
     print(f"🚀 Server running on http://localhost:{port}")
     print(f"🌐 Chat App available at http://localhost:{port}/app")
     print("=" * 60)
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=os.getenv("FLASK_DEBUG") == "1", host="127.0.0.1", port=port)

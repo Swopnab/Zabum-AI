@@ -8,7 +8,7 @@ from pathlib import Path
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
-STORAGE_DIR = PROJECT_ROOT / "storage"
+STORAGE_DIR = Path(os.getenv("ZABUM_STORAGE_DIR", str(PROJECT_ROOT / "storage")))
 UPLOAD_FOLDER = STORAGE_DIR / "uploads"
 THUMBNAIL_FOLDER = STORAGE_DIR / "thumbnails"
 DB_PATH = STORAGE_DIR / "zabum.db"

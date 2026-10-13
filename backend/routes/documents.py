@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 from models.document import DocumentModel, DocumentChunkModel
 from services.rag_service import get_rag_service
+from services.ocr_service import OCRUnavailableError
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -57,8 +58,12 @@ def upload_document():
             "created_at": doc["created_at"]
         }), 201
 
-    except Exception as e:
-        return jsonify({"error": f"Processing failed: {str(e)}"}), 500
+    except (OCRUnavailableError, ValueError) as e:
+        if "filepath" in locals() and os.path.exists(filepath): os.remove(filepath)
+        return jsonify({"error": str(e)}), 503 if isinstance(e, OCRUnavailableError) else 422
+    except Exception:
+        if "filepath" in locals() and os.path.exists(filepath): os.remove(filepath)
+        return jsonify({"error": "Document processing failed; please try again"}), 500
 
 
 @documents_bp.route("/api/documents", methods=["GET"])

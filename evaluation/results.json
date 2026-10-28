@@ -11,15 +11,15 @@
           "recall_at_4": 1.0,
           "mrr_at_4": 1.0,
           "unrelated_queries_with_results": 0,
-          "p50_ms": 0.239,
-          "p95_ms": 0.27
+          "p50_ms": 0.242,
+          "p95_ms": 0.291
         },
         "full_scan": {
           "recall_at_4": 1.0,
           "mrr_at_4": 1.0,
           "unrelated_queries_with_results": 0,
-          "p50_ms": 3.631,
-          "p95_ms": 3.802
+          "p50_ms": 3.711,
+          "p95_ms": 3.824
         }
       },
       "predictions": [
@@ -101,15 +101,15 @@
           "recall_at_4": 1.0,
           "mrr_at_4": 1.0,
           "unrelated_queries_with_results": 0,
-          "p50_ms": 0.234,
-          "p95_ms": 0.295
+          "p50_ms": 0.236,
+          "p95_ms": 0.325
         },
         "full_scan": {
           "recall_at_4": 1.0,
           "mrr_at_4": 1.0,
           "unrelated_queries_with_results": 0,
-          "p50_ms": 35.804,
-          "p95_ms": 36.795
+          "p50_ms": 37.619,
+          "p95_ms": 38.806
         }
       },
       "predictions": [

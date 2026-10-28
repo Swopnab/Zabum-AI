@@ -111,3 +111,7 @@ SQLite FTS5/BM25 selects at most 100 lexical candidates for token-overlap/option
 The checked-in synthetic evaluation compares recall@4, reciprocal rank, unrelated-query results, and p50/p95 retrieval time at 1,000 and 10,000 chunks. These simple fixtures do not establish answer grounding or OCR accuracy. For a meaningful next evaluation, use held-out real documents/questions and manually verified screenshot transcriptions; report answer support and OCR word error rate separately.
 
 The server binds to localhost with debug disabled by default. Storage defaults to `storage/`; `ZABUM_STORAGE_DIR` selects another local directory. This remains a single-user local application. Back up an existing database before changing schemas. Tests use isolated temporary storage and require no running Ollama instance.
+
+## Review release
+
+See [setup, architecture, data recovery, evaluation definitions, and limitations](docs/RELEASE_REVIEW.md) and [UI provenance](docs/UI_REUSE.md). The local app now offers document passages with clickable source locations and general AI chat as separate modes. Suggested memories require approval. The working service remains localhost-only; the static showcase is available at `/showcase/`. This review has not been deployed.

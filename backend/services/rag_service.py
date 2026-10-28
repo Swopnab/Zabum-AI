@@ -35,7 +35,15 @@ class RAGService:
 
         # Step 1: Extract text
         file_type = "image" if ext in IMAGE_EXTENSIONS else ("pdf" if ext == "pdf" else "text")
-        extracted_text = self._extract_text(filepath, ext)
+        if ext == 'pdf':
+            try:
+                import pypdf
+                pages = [(i + 1, page.extract_text() or '') for i, page in enumerate(pypdf.PdfReader(filepath).pages)]
+            except Exception as e:
+                raise ValueError('Could not read this PDF') from e
+        else:
+            pages = [(None, self._extract_text(filepath, ext))]
+        extracted_text = '\n'.join(text for _, text in pages).strip()
 
         if not extracted_text or not extracted_text.strip():
             raise ValueError("No readable text found; the document was not indexed")
@@ -45,12 +53,13 @@ class RAGService:
 
         # Prepare embeddings before the transaction; unavailable embeddings use lexical retrieval.
         indexed_chunks = []
-        for chunk in self._chunk_text(extracted_text, CHUNK_SIZE, CHUNK_OVERLAP):
-            try:
-                embedding = self.ai_provider.get_embedding(chunk)
-            except Exception:
-                embedding = None
-            indexed_chunks.append((chunk,embedding))
+        for page_number, text in pages:
+            for chunk in self._chunk_text(text, CHUNK_SIZE, CHUNK_OVERLAP):
+                try:
+                    embedding = self.ai_provider.get_embedding(chunk)
+                except Exception:
+                    embedding = None
+                indexed_chunks.append((chunk,embedding,page_number))
         return create_indexed_document({
             "filename": os.path.basename(filepath), "original_name": original_filename,
             "file_type": file_type, "file_size": file_size, "extracted_text": extracted_text,
@@ -184,6 +193,7 @@ JSON:"""
                 scored_chunks.append({
                     "chunk_id": chunk["chunk_id"],
                     "document_id": chunk["document_id"],
+                    "page_number": chunk.get("page_number"),
                     "document_name": chunk["original_name"],
                     "file_type": chunk["file_type"],
                     "category": chunk["category"],

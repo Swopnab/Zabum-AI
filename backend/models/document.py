@@ -62,6 +62,6 @@ def create_indexed_document(fields,chunks):
         document_id = db.execute('''INSERT INTO documents(filename,original_name,file_type,file_size,extracted_text,summary,tags,category)
             VALUES(?,?,?,?,?,?,?,?)''',tuple(fields[key] for key in ('filename','original_name','file_type','file_size','extracted_text','summary'))+
             (json.dumps(fields['tags']),fields['category'])).lastrowid
-        db.executemany('INSERT INTO document_chunks(document_id,chunk_index,content,embedding) VALUES(?,?,?,?)',
-            [(document_id,index,content,json.dumps(embedding) if embedding else None) for index,(content,embedding) in enumerate(chunks)])
+        db.executemany('INSERT INTO document_chunks(document_id,chunk_index,content,embedding,page_number) VALUES(?,?,?,?,?)',
+            [(document_id,index,chunk[0],json.dumps(chunk[1]) if chunk[1] else None,chunk[2] if len(chunk)>2 else None) for index,chunk in enumerate(chunks)])
     return DocumentModel.get_by_id(document_id)

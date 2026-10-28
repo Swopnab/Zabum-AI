@@ -76,3 +76,10 @@ package-lock.json
 
 # Keep application model source tracked; SQLite WAL files remain local.
 *.db-*
+
+*.bak
+*.sqlite-*
+.env*
+!.env.example
+
+/tests/screenshots/

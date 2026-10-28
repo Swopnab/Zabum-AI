@@ -1,5 +1,6 @@
 """Short-lived, transactional SQLite connections with foreign-key enforcement."""
 import sqlite3
+from datetime import datetime, timezone
 from contextlib import contextmanager
 from pathlib import Path
 from flask import current_app, has_app_context
@@ -20,6 +21,16 @@ def connection():
 
 def init_db():
     with connection() as db:
+        existing = {r[1] for r in db.execute('PRAGMA table_info(document_chunks)')}
+        if existing and 'page_number' not in existing:
+            # Snapshot before the additive migration; IDs and old chunks stay intact.
+            path = db.execute('PRAGMA database_list').fetchone()[2]
+            backup = sqlite3.connect(path + '.before-sources-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.bak')
+            try:
+                db.backup(backup)
+            finally:
+                backup.close()
+            db.execute('ALTER TABLE document_chunks ADD COLUMN page_number INTEGER')
         had_search_index = db.execute("SELECT 1 FROM sqlite_master WHERE name='chunks_fts'").fetchone() is not None
         db.executescript('''
         CREATE TABLE IF NOT EXISTS conversations (
@@ -48,6 +59,7 @@ def init_db():
             UNIQUE(document_id,chunk_index)
         );
         CREATE INDEX IF NOT EXISTS idx_chunks_document ON document_chunks(document_id,chunk_index);
+        CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY,value TEXT NOT NULL);
         CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(content,content='document_chunks',content_rowid='id');
         CREATE TRIGGER IF NOT EXISTS chunks_insert AFTER INSERT ON document_chunks BEGIN
             INSERT INTO chunks_fts(rowid,content) VALUES(new.id,new.content);
@@ -63,6 +75,8 @@ def init_db():
         if not had_search_index:
             # Index documents already present when upgrading an existing database.
             db.execute("INSERT INTO chunks_fts(chunks_fts) VALUES('rebuild')")
+        if not existing:
+            db.execute('ALTER TABLE document_chunks ADD COLUMN page_number INTEGER')
 
 def get_one(table, row_id):
     # Only fixed internal table names call this helper.

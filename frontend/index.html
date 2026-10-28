@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zabum AI — Personal AI Assistant</title>
     <meta name="description" content="Local-first Personal AI Assistant with persistent memory, screenshot intelligence, and knowledge retrieval.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -36,6 +35,7 @@
                 </button>
             </div>
 
+            <a class="project-about" href="/showcase/" target="_blank" rel="noopener">About this project ↗</a>
             <div class="sidebar-actions">
                 <button class="btn-new-chat" id="newChatBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,9 +91,9 @@
                         <span class="section-label">Personal Memories</span>
                         <button class="btn-xs btn-primary" id="openAddMemoryBtn">+ Add</button>
                     </div>
-                    <p class="section-desc">Facts & preferences remembered by Zabum AI across conversations.</p>
+                    <p class="section-desc">Approved facts and preferences. Delete to exclude them from future context; earlier chat messages remain.</p>
                     <div class="memory-search-box">
-                        <input type="text" id="memorySearchInput" placeholder="Search memories..." />
+                        <input type="text" id="memorySearchInput" aria-label="Search memories" placeholder="Search memories..." />
                     </div>
                     <div class="memory-list" id="memoryList">
                         <!-- Dynamic memory items -->
@@ -106,7 +106,7 @@
                         <span class="section-label">Documents & OCR</span>
                         <button class="btn-xs btn-primary" id="openUploadBtn">+ Upload</button>
                     </div>
-                    <p class="section-desc">Screenshots & files indexed for semantic RAG retrieval.</p>
+                    <p class="section-desc">Ready documents and screenshots. Search uses a lexical shortlist with optional embedding reranking.</p>
                     <div class="doc-list" id="documentList">
                         <!-- Dynamic document items -->
                     </div>
@@ -215,7 +215,7 @@
 
                 <!-- Typing indicator -->
                 <div class="typing-indicator" id="typingIndicator" style="display: none;">
-                    <div class="typing-avatar">🧠</div>
+                    <div class="typing-avatar">Z</div>
                     <div class="typing-bubble">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
@@ -242,6 +242,13 @@
                     <span id="uploadProgressText">Processing screenshot with TrOCR OCR...</span>
                 </div>
 
+                <div class="workspace-options">
+                    <label for="answerMode">Answer mode <select id="answerMode"><option value="documents">Document passages</option><option value="general">General AI chat</option></select></label>
+                    <label><input type="checkbox" id="memoryEnabled" checked> Use approved memories in general chat</label>
+                </div>
+                <div id="memorySuggestions" class="memory-suggestions" aria-live="polite"></div>
+                <p id="documentReadiness" role="status"></p>
+                <progress id="uploadMeter" max="100" hidden aria-label="File upload progress"></progress>
                 <div class="chat-input-bar">
                     <!-- File upload attachment button -->
                     <input type="file" id="chatFileInput" accept="image/*,.txt,.md,.py,.js,.json,.csv,.pdf" hidden />
@@ -252,10 +259,10 @@
                     </button>
 
                     <!-- Textarea input -->
-                    <textarea 
-                        id="chatInput" 
-                        class="chat-textarea" 
-                        placeholder="Message Zabum AI or type 'Remember that...' (Shift+Enter for new line)"
+                    <textarea
+                        id="chatInput" aria-label="Message"
+                        class="chat-textarea"
+                        placeholder="Ask about your documents, or select General AI chat"
                         rows="1"
                     ></textarea>
 
@@ -268,7 +275,7 @@
                     </button>
                 </div>
                 <div class="input-footer-hint">
-                    <span>Privacy Notice: All inferences and documents are processed locally on your device.</span>
+                    <span>Local workspace. Document mode quotes retrieved passages; general AI answers need review.</span>
                 </div>
             </div>
         </main>

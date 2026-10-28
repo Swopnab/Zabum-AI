@@ -217,9 +217,9 @@ async function checkSystemStatus() {
 
         if (data.ai_provider && data.ai_provider.available) {
             statusDot.className = 'status-dot online';
-            statusTitle.textContent = 'Local AI Ready';
-            statusDetail.textContent = 'Ollama (Llama 3.2)';
-            headerModelName.textContent = 'Llama 3.2 (Local)';
+            statusTitle.textContent = data.ai_provider.name === 'MockProvider' ? 'Fictional demo' : 'Local AI ready';
+            statusDetail.textContent = data.ai_provider.message;
+            headerModelName.textContent = data.ai_provider.name === 'MockProvider' ? 'Demo · no model inference' : data.ai_provider.name;
         } else {
             statusDot.className = 'status-dot offline';
             statusTitle.textContent = 'Ollama Offline';
@@ -280,6 +280,9 @@ function renderConversationList() {
             if (window.innerWidth <= 768) sidebar.classList.remove('open');
         });
 
+        item.tabIndex = 0; item.setAttribute('role', 'button');
+        item.setAttribute('aria-label', `Open chat: ${conv.title}`);
+        item.addEventListener('keydown', e => { if (e.target === item && ['Enter',' '].includes(e.key)) { e.preventDefault(); item.click(); } });
         const editBtn = item.querySelector('.edit-title-btn');
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -422,7 +425,7 @@ function appendMessageElement(msg) {
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
-    avatar.textContent = msg.role === 'assistant' ? '🧠' : '👤';
+    avatar.textContent = msg.role === 'assistant' ? 'Z' : 'Y';
 
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'message-content-wrapper';
@@ -451,49 +454,26 @@ function appendMessageElement(msg) {
     scrollToBottom();
 }
 
+// Adapted from UI Vault's original Quiet accordion pattern; no external component.
 function createSourcesAccordion(sources) {
-    const accordion = document.createElement('div');
-    accordion.className = 'sources-accordion';
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'sources-toggle-btn';
-    toggleBtn.innerHTML = `
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-        <span>Context Used (${sources.length} sources)</span>
-    `;
-
-    const pillList = document.createElement('div');
-    pillList.className = 'sources-pill-list';
-
-    sources.forEach(src => {
-        const pill = document.createElement('div');
-        if (src.type === 'new_memory') {
-            pill.className = 'source-item-pill new-memory';
-            pill.innerHTML = `<span>🧠 Stored: ${escapeHtml(src.content)}</span>`;
-        } else {
-            pill.className = 'source-item-pill';
-            pill.innerHTML = `
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                </svg>
-                <span>${escapeHtml(src.document_name)}</span>
-            `;
-            pill.title = src.content_preview || '';
-        }
-        pillList.appendChild(pill);
-    });
-
-    toggleBtn.addEventListener('click', () => {
-        const isOpen = pillList.style.display !== 'none';
-        pillList.style.display = isOpen ? 'none' : 'flex';
-        toggleBtn.querySelector('svg').style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
-    });
-
-    accordion.appendChild(toggleBtn);
-    accordion.appendChild(pillList);
-    return accordion;
+    const details = document.createElement('details');
+    details.className = 'sources-accordion';
+    const summary = document.createElement('summary');
+    summary.textContent = `Retrieved context (${sources.length}) · inspect passages`;
+    details.appendChild(summary);
+    for (const src of sources) {
+        const article = document.createElement('div');
+        const button = document.createElement('button');
+        button.className = 'source-link';
+        button.textContent = `${src.citation_id || 'Source'} · ${src.document_name || 'Saved memory'} · ${src.page_number ? 'page ' + src.page_number : 'page unavailable'}`;
+        button.disabled = !src.document_id;
+        button.onclick = () => openDocInspectionModal(src.document_id, src.chunk_id);
+        const passage = document.createElement('blockquote');
+        passage.textContent = src.content_preview || src.content || '';
+        article.append(button, passage);
+        details.appendChild(article);
+    }
+    return details;
 }
 
 async function sendMessage() {
@@ -518,7 +498,8 @@ async function sendMessage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 conversation_id: currentConversationId,
-                message: text
+                message: text,
+                mode: document.getElementById("answerMode").value
             })
         });
 
@@ -552,6 +533,26 @@ async function sendMessage() {
             appendMessageElement(data.assistant_message);
         }
 
+        const suggestions = document.getElementById('memorySuggestions');
+        suggestions.replaceChildren();
+        for (const candidate of data.memory_suggestions || []) {
+            const row = document.createElement('div');
+            const label = document.createElement('span');
+            label.textContent = `Remember this? ${candidate.content} `;
+            const approve = document.createElement('button');
+            approve.textContent = 'Approve';
+            approve.onclick = async () => {
+                approve.disabled = true;
+                try {
+                    const response = await fetch(`${API_BASE}/api/memories`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(candidate)});
+                    if (!response.ok) throw new Error('Memory was not saved');
+                    row.remove(); await loadMemories(); showToast('Memory approved and saved', 'success');
+                } catch (error) { approve.disabled = false; showToast(error.message, 'error'); }
+            };
+            const dismiss = document.createElement('button');
+            dismiss.textContent = 'Dismiss'; dismiss.onclick = () => row.remove();
+            row.append(label, approve, dismiss); suggestions.appendChild(row);
+        }
         // Reload memories if new ones were learned
         if (data.memories_created && data.memories_created.length > 0) {
             await loadMemories();
@@ -670,7 +671,7 @@ async function saveMemory() {
     try {
         if (id) {
             // Update
-            await fetch(`${API_BASE}/api/memories/${id}`, {
+            await checkedFetch(`${API_BASE}/api/memories/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content, category })
@@ -678,7 +679,7 @@ async function saveMemory() {
             showToast('Memory updated', 'success');
         } else {
             // Create
-            await fetch(`${API_BASE}/api/memories`, {
+            await checkedFetch(`${API_BASE}/api/memories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content, category })
@@ -695,7 +696,7 @@ async function saveMemory() {
 async function deleteMemory(memId) {
     if (!confirm('Are you sure you want to delete this memory?')) return;
     try {
-        await fetch(`${API_BASE}/api/memories/${memId}`, { method: 'DELETE' });
+        await checkedFetch(`${API_BASE}/api/memories/${memId}`, { method: 'DELETE' });
         showToast('Memory deleted', 'success');
         await loadMemories();
     } catch (e) {
@@ -777,9 +778,18 @@ async function handleFileUpload(file, isModal = false) {
     formData.append('file', file);
 
     try {
-        const res = await fetch(`${API_BASE}/api/documents/upload`, {
-            method: 'POST',
-            body: formData
+        const readiness = document.getElementById('documentReadiness');
+        const meter = document.getElementById('uploadMeter');
+        readiness.textContent = `Uploading ${file.name}…`; meter.hidden = false; meter.value = 0;
+        const res = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${API_BASE}/api/documents/upload`);
+            xhr.upload.onprogress = e => { if (e.lengthComputable) meter.value = e.loaded / e.total * 100; };
+            xhr.upload.onload = () => { meter.removeAttribute('value'); readiness.textContent = 'Extracting and indexing. This document is not ready yet…'; };
+            xhr.onload = () => resolve({ok:xhr.status >= 200 && xhr.status < 300, json:async () => JSON.parse(xhr.responseText)});
+            xhr.onerror = () => reject(new Error('Connection lost; check Documents before retrying'));
+            xhr.timeout = 300000; xhr.ontimeout = () => reject(new Error('Processing timed out; check Documents before retrying'));
+            xhr.send(formData);
         });
 
         if (!res.ok) {
@@ -788,6 +798,7 @@ async function handleFileUpload(file, isModal = false) {
         }
 
         const data = await res.json();
+        document.getElementById("documentReadiness").textContent = `${file.name} · ready to search`;
         showToast(`Successfully indexed "${file.name}"!`, 'success');
         await loadDocuments();
 
@@ -803,8 +814,10 @@ async function handleFileUpload(file, isModal = false) {
             });
         }
     } catch (e) {
+        document.getElementById("documentReadiness").textContent = `Not ready: ${e.message}`;
         showToast(`Upload error: ${e.message}`, 'error');
     } finally {
+        document.getElementById("uploadMeter").hidden = true;
         uploadProgressPill.style.display = 'none';
         modalUploadStatus.style.display = 'none';
         chatFileInput.value = '';
@@ -812,9 +825,10 @@ async function handleFileUpload(file, isModal = false) {
     }
 }
 
-async function openDocInspectionModal(docId) {
+async function openDocInspectionModal(docId, chunkId) {
     try {
         const res = await fetch(`${API_BASE}/api/documents/${docId}/chunks`);
+        if (!res.ok) throw new Error("Source unavailable; it may have been deleted");
         const data = await res.json();
         const doc = data.document;
         const chunks = data.chunks || [];
@@ -833,23 +847,26 @@ async function openDocInspectionModal(docId) {
         chunks.forEach(c => {
             const chunkDiv = document.createElement('div');
             chunkDiv.className = 'chunk-card';
+            chunkDiv.id = `chunk-${c.id}`;
+            if (c.id === chunkId) chunkDiv.classList.add('selected-passage');
             chunkDiv.innerHTML = `
-                <div class="chunk-index-tag">Chunk #${c.chunk_index + 1} (${c.content.length} chars)</div>
+                <div class="chunk-index-tag">Chunk #${c.chunk_index + 1} · ${c.page_number ? "page " + c.page_number : "page unavailable"} (${c.content.length} chars)</div>
                 <div>${escapeHtml(c.content)}</div>
             `;
             docChunksContainer.appendChild(chunkDiv);
         });
 
         openModal('chunkModal');
+        if (chunkId) document.getElementById(`chunk-${chunkId}`)?.scrollIntoView({block:'nearest'});
     } catch (e) {
-        showToast('Failed to load document chunks', 'error');
+        showToast('Source unavailable. The document may have been deleted.', 'error');
     }
 }
 
 async function deleteDocument(docId) {
-    if (!confirm('Are you sure you want to delete this document from knowledge base?')) return;
+    if (!confirm('Remove this document and its search index? Quotes already saved in chats remain. Delete those chats separately to remove their history.')) return;
     try {
-        await fetch(`${API_BASE}/api/documents/${docId}`, { method: 'DELETE' });
+        await checkedFetch(`${API_BASE}/api/documents/${docId}`, { method: 'DELETE' });
         showToast('Document deleted', 'success');
         await loadDocuments();
     } catch (e) {
@@ -877,14 +894,31 @@ function switchTab(tabName) {
 
 // ==================== MODAL UTILITIES ====================
 
+let modalReturnFocus;
 function openModal(modalId) {
     const el = document.getElementById(modalId);
-    if (el) el.style.display = 'flex';
+    if (!el) return;
+    modalReturnFocus = document.activeElement;
+    el.style.display = 'flex';
+    const panel = el.querySelector('.modal-card');
+    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', panel.querySelector('.modal-title')?.textContent || 'Workspace dialog');
+    document.getElementById('appLayout').inert = true;
+    el.querySelector('button,input,textarea,select')?.focus();
+    el.onkeydown = event => {
+        if (event.key === 'Escape') { event.preventDefault(); closeModal(modalId); }
+        if (event.key !== 'Tab') return;
+        const targets = [...el.querySelectorAll('button,input,textarea,select,a[href]')].filter(n=>!n.disabled && n.getClientRects().length);
+        const first=targets[0],last=targets.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault();last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) {event.preventDefault();first?.focus();}
+    };
 }
-
 function closeModal(modalId) {
     const el = document.getElementById(modalId);
     if (el) el.style.display = 'none';
+    document.getElementById('appLayout').inert = false;
+    if (modalReturnFocus?.isConnected) modalReturnFocus.focus();
 }
 
 // ==================== TOAST NOTIFICATIONS ====================
@@ -892,6 +926,7 @@ function closeModal(modalId) {
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    toast.setAttribute('role',type === 'error' ? 'alert' : 'status');
     toast.textContent = message;
     toastContainer.appendChild(toast);
 
@@ -936,6 +971,8 @@ function renderMarkdown(text) {
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    html = html.replace(/^&gt; (.*$)/gm, '<blockquote>$1</blockquote>');
 
     // 4. Bold & Italic
     html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -983,4 +1020,33 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+// Memory controls persist on the server, not only in this tab.
+document.addEventListener('DOMContentLoaded', async () => {
+    const toggle = document.getElementById('memoryEnabled');
+    try { const r = await fetch(`${API_BASE}/api/preferences`); if (!r.ok) throw Error(); toggle.checked = (await r.json()).memory_enabled; }
+    catch { toggle.disabled = true; showToast('Memory preference could not be loaded', 'error'); }
+    toggle.onchange = async () => {
+        const desired = toggle.checked; toggle.disabled = true;
+        try { const r = await fetch(`${API_BASE}/api/preferences`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({memory_enabled:desired})}); if (!r.ok) throw Error(); document.getElementById('memorySuggestions').replaceChildren(); }
+        catch { toggle.checked = !desired; showToast('Preference was not saved', 'error'); }
+        finally { toggle.disabled = false; }
+    };
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const syncSidebar=()=>{
+        const mobile=innerWidth<=768, open=sidebar.classList.contains('open');
+        sidebar.inert=mobile&&!open;
+        document.getElementById('toggleSidebarBtn').setAttribute('aria-expanded',String(!mobile||open));
+    };
+    new MutationObserver(syncSidebar).observe(sidebar,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',syncSidebar);syncSidebar();
+});
+
+async function checkedFetch(url,options) {
+    const response=await fetch(url,options);
+    if(!response.ok)throw new Error('Changes were not saved. Please retry.');
+    return response;
 }

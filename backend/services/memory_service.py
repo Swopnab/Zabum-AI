@@ -52,10 +52,10 @@ class MemoryService:
             top = scored[:limit]
         return top[:limit]
 
-    def extract_and_save_memory(self, user_message: str) -> list[dict]:
+    def extract_and_save_memory(self, user_message: str, persist: bool = False) -> list[dict]:
         """
         Detects if the user is asking the assistant to remember something,
-        extracts the persistent statement, and stores it in SQLite.
+        suggests a statement for approval. Persistence requires an explicit opt-in.
         """
         text = user_message.strip()
         saved = []
@@ -91,7 +91,7 @@ class MemoryService:
                 clean_content = matched_content
 
             if not MemoryModel.exists_similar(clean_content):
-                mem = MemoryModel.create(clean_content, category=category)
+                mem = MemoryModel.create(clean_content, category=category) if persist else {'content': clean_content, 'category': category}
                 saved.append(mem)
                 return saved
 

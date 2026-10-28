@@ -38,7 +38,9 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(status['stats'],{'conversations':0,'memories':0,'documents':0})
         self.assertEqual(status['ai_provider']['name'],'MockProvider')
         first = self.client.post('/api/chat',json={'message':'Remember that I prefer Python'}).get_json()
-        self.assertEqual(len(first['memories_created']),1)
+        self.assertEqual(first['memories_created'],[])
+        self.assertEqual(len(first['memory_suggestions']),1)
+        self.client.post('/api/memories',json=first['memory_suggestions'][0])
         conv = first['conversation_id']
         self.client.post('/api/chat',json={'conversation_id':conv,'message':'What do I prefer?'})
         restarted = create_app({'TESTING':True,'DB_PATH':self.app.config['DB_PATH']}).test_client()

@@ -2,7 +2,10 @@
 Status & Health API Route
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, current_app
+import os
+import tempfile
+from pathlib import Path
 from datetime import datetime
 from services.ai_provider import get_ai_provider
 from models.conversation import ConversationModel
@@ -23,6 +26,7 @@ def system_status():
 
     return jsonify({
         "status": "online",
+        "review_fixture": os.getenv("ZABUM_REVIEW_FIXTURE") == "1" and provider.__class__.__name__ == "MockProvider" and any(Path(current_app.config["DB_PATH"]).resolve().is_relative_to(root.resolve()) for root in (Path("/tmp"), Path(tempfile.gettempdir()))),
         "app_name": "Zabum AI",
         "subtitle": "Personal AI Assistant",
         "version": "1.0.0",

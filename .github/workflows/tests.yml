@@ -1,0 +1,44 @@
+name: Local application tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install -r backend/requirements-core.txt
+      - run: python -m unittest discover -s tests -v
+        working-directory: backend
+      - run: python evaluate.py --output ../evaluation/results.json
+        working-directory: backend
+      - run: python evaluate_evidence.py > ../evaluation/evidence-results.json
+        working-directory: backend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-retrieval-evaluation
+          path: evaluation/*.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install browser tooling
+        run: |
+          npm install --prefix /tmp/browser-tools playwright@1.63.0
+          /tmp/browser-tools/node_modules/.bin/playwright install --with-deps chromium
+      - name: Browser to storage checks
+        env:
+          PLAYWRIGHT_PATH: /tmp/browser-tools/node_modules/playwright
+        run: |
+          AI_PROVIDER=mock ZABUM_REVIEW_FIXTURE=1 ZABUM_STORAGE_DIR=/tmp/zabum-browser-fixture PORT=5091 python backend/app.py > /tmp/zabum-browser.log 2>&1 &
+          for attempt in {1..30}; do curl -fsS http://127.0.0.1:5091/api/status > /dev/null && break; sleep 1; done
+          node tests/browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-review-evidence
+          path: tests/screenshots

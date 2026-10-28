@@ -41,7 +41,7 @@ zabum-ai/
 
 ## Prerequisites
 
-- Python 3.9+
+- Python 3.11+
 - Ollama installed and running
 
 ## Setup and Installation
@@ -50,6 +50,7 @@ zabum-ai/
 ```bash
 ollama serve
 ollama pull llama3.2
+ollama pull nomic-embed-text
 ```
 
 2. Set up the Python environment:
@@ -84,3 +85,33 @@ python app.py
 - `GET /api/documents/<id>/chunks`: View chunks for a document.
 - `DELETE /api/documents/<id>`: Delete a document and its chunks.
 - `GET /api/status`: Health check and Ollama connectivity status.
+
+## Run without downloading models
+
+For a lightweight, free local demo and regression tests:
+
+```sh
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-core.txt
+AI_PROVIDER=mock python app.py
+python -m unittest discover -s tests -v
+python evaluate.py --output ../evaluation/results.json
+```
+
+Mock mode labels its responses as demonstrations. It verifies application behavior without pretending to generate intelligent answers. Full chat uses the two Ollama models above; installing the original `requirements.txt` also enables TrOCR dependencies. OCR weights load only on the first image upload. If they cannot load, image upload returns an explicit 503 and creates no indexed document. Empty/unreadable files return 422. Text uploads work without OCR.
+
+## Persistence and retrieval
+
+Application SQLite models are checked in under `backend/models/`; the ignore rule now excludes only `/model-weights/`. Conversations/messages, memories, documents, and chunks survive restarts. Foreign keys cascade deletions. Document metadata, chunks, and FTS updates commit together, so a chunk failure rolls the ingestion back.
+
+SQLite FTS5/BM25 selects at most 100 lexical candidates for token-overlap/optional-vector reranking. This bounds Python ranking work, but synonym-only semantic matches outside the lexical shortlist can be missed. The previous exhaustive keyword scan is retained only as an evaluation baseline. No separate vector database or paid API is required.
+
+The checked-in synthetic evaluation compares recall@4, reciprocal rank, unrelated-query results, and p50/p95 retrieval time at 1,000 and 10,000 chunks. These simple fixtures do not establish answer grounding or OCR accuracy. For a meaningful next evaluation, use held-out real documents/questions and manually verified screenshot transcriptions; report answer support and OCR word error rate separately.
+
+The server binds to localhost with debug disabled by default. Storage defaults to `storage/`; `ZABUM_STORAGE_DIR` selects another local directory. This remains a single-user local application. Back up an existing database before changing schemas. Tests use isolated temporary storage and require no running Ollama instance.
+
+## Review release
+
+See [setup, architecture, data recovery, evaluation definitions, and limitations](docs/RELEASE_REVIEW.md) and [UI provenance](docs/UI_REUSE.md). The local app now offers document passages with clickable source locations and general AI chat as separate modes. Suggested memories require approval. The working service remains localhost-only; the static showcase is available at `/showcase/`. This review has not been deployed.

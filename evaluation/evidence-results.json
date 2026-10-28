@@ -1,0 +1,84 @@
+{
+  "fixture": "5 short fictional text documents, 5 answerable and 3 unanswerable questions; mock provider; lexical gate; no paraphrase/semantic entailment, LLM quality, or OCR evaluation",
+  "repetitions_per_question": 20,
+  "answerable_passage_recall": 1.0,
+  "unanswerable_abstention_rate": 1.0,
+  "p50_retrieve_and_gate_ms": 0.20747899543493986,
+  "p95_retrieve_and_gate_ms": 0.2377500059083104,
+  "cases": [
+    {
+      "query": "parking permits expire",
+      "expected": "parking.txt",
+      "known_supporting_passage": "Campus parking permits expire in August. Visitor parking uses the east garage.",
+      "selected_documents": [
+        "parking.txt"
+      ],
+      "abstained": false,
+      "known_passage_found": true
+    },
+    {
+      "query": "library weekend hours",
+      "expected": "library.txt",
+      "known_supporting_passage": "Library weekend opening hours are nine until five. Borrowed books renew online.",
+      "selected_documents": [
+        "library.txt"
+      ],
+      "abstained": false,
+      "known_passage_found": true
+    },
+    {
+      "query": "algorithms prerequisite",
+      "expected": "courses.txt",
+      "known_supporting_passage": "The algorithms course prerequisite is data structures. Registration opens in April.",
+      "selected_documents": [
+        "courses.txt"
+      ],
+      "abstained": false,
+      "known_passage_found": true
+    },
+    {
+      "query": "imported audio IndexedDB",
+      "expected": "music.txt",
+      "known_supporting_passage": "The music player stores imported audio in IndexedDB. Radio streams require an internet connection.",
+      "selected_documents": [
+        "music.txt"
+      ],
+      "abstained": false,
+      "known_passage_found": true
+    },
+    {
+      "query": "CyberSteer keyboard",
+      "expected": "racing.txt",
+      "known_supporting_passage": "CyberSteer hand tracking uses MediaPipe landmarks. Keyboard arrows also steer the car.",
+      "selected_documents": [
+        "racing.txt"
+      ],
+      "abstained": false,
+      "known_passage_found": true
+    },
+    {
+      "query": "volcanic eruption monitoring",
+      "expected": null,
+      "known_supporting_passage": null,
+      "selected_documents": [],
+      "abstained": true,
+      "known_passage_found": false
+    },
+    {
+      "query": "library director phone number",
+      "expected": null,
+      "known_supporting_passage": null,
+      "selected_documents": [],
+      "abstained": true,
+      "known_passage_found": false
+    },
+    {
+      "query": "parking permit costs",
+      "expected": null,
+      "known_supporting_passage": null,
+      "selected_documents": [],
+      "abstained": true,
+      "known_passage_found": false
+    }
+  ]
+}

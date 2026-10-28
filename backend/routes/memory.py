@@ -4,8 +4,24 @@ Memory API Route - User memory management and inspection
 
 from flask import Blueprint, request, jsonify
 from models.memory import MemoryModel
+from models.database import connection
 
 memory_bp = Blueprint("memory", __name__)
+
+def memory_enabled():
+    with connection() as db:
+        row = db.execute("SELECT value FROM preferences WHERE key='memory_enabled'").fetchone()
+    return row is None or row[0] == 'true'
+
+@memory_bp.route('/api/preferences', methods=['GET', 'PUT'])
+def preferences():
+    if request.method == 'PUT':
+        value = (request.get_json(silent=True) or {}).get('memory_enabled')
+        if not isinstance(value, bool):
+            return jsonify({'error': 'memory_enabled must be a boolean'}), 400
+        with connection() as db:
+            db.execute("INSERT INTO preferences(key,value) VALUES('memory_enabled',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", ('true' if value else 'false',))
+    return jsonify({'memory_enabled': memory_enabled()})
 
 @memory_bp.route("/api/memories", methods=["GET"])
 def list_memories():

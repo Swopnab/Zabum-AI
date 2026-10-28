@@ -1,0 +1,27 @@
+{
+  "fixture": "Fictional temporary documents; mock provider; Chromium viewport emulation",
+  "checks": [
+    {
+      "name": "Zabum browser upload, evidence, source inspection and reload",
+      "result": "passed"
+    },
+    {
+      "name": "Zabum memory approval and persistent disable through UI",
+      "result": "passed"
+    },
+    {
+      "name": "Zabum failed memory saves keep the dialog open",
+      "result": "passed"
+    },
+    {
+      "name": "Zabum desktop, tablet and phone layouts",
+      "result": "passed"
+    },
+    {
+      "name": "Zabum keyboard navigation and mobile chat controls",
+      "result": "passed"
+    }
+  ],
+  "unhandledPageErrors": [],
+  "date": "2026-10-28"
+}

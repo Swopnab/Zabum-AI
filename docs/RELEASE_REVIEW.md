@@ -1,3 +1,9 @@
+# Publication note
+
+Approved changes are merged into `main`, and the static interface is published on GitHub Pages: https://swopnab.github.io/Zabum-AI/. Only the static showcase is public. The document/chat API and personal storage stay local.
+
+The review below records pre-publication validation and its remaining limits.
+
 # Zabum AI — review build
 
 Status: local review only. No push or deployment authorized yet. No real documents or profiles were used in testing.

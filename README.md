@@ -114,4 +114,8 @@ The server binds to localhost with debug disabled by default. Storage defaults t
 
 ## Review release
 
-See [setup, architecture, data recovery, evaluation definitions, and limitations](docs/RELEASE_REVIEW.md) and [UI provenance](docs/UI_REUSE.md). The local app now offers document passages with clickable source locations and general AI chat as separate modes. Suggested memories require approval. The working service remains localhost-only; the static showcase is available at `/showcase/`. This review has not been deployed.
+See [setup, architecture, data recovery, evaluation definitions, and limitations](docs/RELEASE_REVIEW.md) and [UI provenance](docs/UI_REUSE.md). The local app now offers document passages with clickable source locations and general AI chat as separate modes. Suggested memories require approval. The working service remains localhost-only; the static showcase is available at `/showcase/`.
+
+## Published interface — October 28, 2026
+
+[Open the website](https://swopnab.github.io/Zabum-AI/). Only the static showcase is public. The document/chat API and personal storage stay local. See GitHub Actions for release checks and deployment status.
